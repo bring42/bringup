@@ -8,6 +8,7 @@
 #include "../api/config.h"
 #include "../api/firmware.h"
 #include "updater.h"
+#include "timesync.h"
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <WiFi.h>
@@ -118,6 +119,11 @@ void setupServer() {
         JsonObject components = doc["components"].to<JsonObject>();
         components["storage"] = storage.isReady();
         components["web_ui"]  = webUiAvailable;
+        // enabled = SNTP compiled in; valid = the clock is usable however it got
+        // set. A monitor should treat enabled-but-not-valid as degraded, and
+        // not-enabled as fine.
+        components["time_enabled"] = (bool)BRINGUP_TIME_SYNC;
+        components["time_valid"]   = bringup::timeValid();
 
         String response;
         serializeJson(doc, response);

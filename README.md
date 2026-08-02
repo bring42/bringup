@@ -57,6 +57,28 @@ UI, and the device will tell you so with a 503.
 Then join the **My Project-Setup** access point, open `192.168.4.1`, and enter
 your WiFi credentials. After that the device is at `http://my-project.local`.
 
+## Choose your own adventure
+
+Every default works with zero setup; every upgrade is a build flag. You can ship
+something useful without reading past this table.
+
+| | Default (nothing to do) | Upgrades |
+|---|---|---|
+| **Update source** | GitHub releases | self-host anywhere — private source, your own CA ([OTA.md](docs/OTA.md#self-hosting-and-keeping-your-source-private)) |
+| **Time** | none — the base is `millis()`-only | DHCP-supplied (free, no provider to pick) · explicit NTP servers |
+| **API auth** | open — needed for first-boot provisioning | token via `Authorization` / `X-API-Key` / `?token=` |
+| **Partitions** | 8 MB table, 3 MB app slots | 4 / 16 MB tables ([PARTITIONS.md](docs/PARTITIONS.md)) |
+
+Time sync, for example, is off because the base needs no wall clock and it adds
+an outbound dependency you didn't ask for. Turning it on:
+
+```ini
+build_flags =
+    -DBRINGUP_TIME_SYNC=1
+    ; optional — omit to use only what your router advertises via DHCP option 42
+    -DBRINGUP_NTP_SERVER1='"pool.ntp.org"'
+```
+
 ## Writing your project
 
 Everything you write goes in [`src/app.cpp`](src/app.cpp), behind six hooks:

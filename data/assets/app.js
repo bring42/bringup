@@ -101,6 +101,12 @@ function renderStatus(s) {
   // design. Watch the trend, not the absolute number.
   $('st-temp').textContent    = s.tempC != null ? s.tempC.toFixed(1) + ' °C' : '—';
   $('st-hash').textContent    = s.buildHash || '';
+  // Distinguish "no clock configured" (a choice) from "configured but never
+  // synced" (a fault) — see BRINGUP_TIME_SYNC in constants.h.
+  const t = s.time || {};
+  $('st-time').textContent = t.valid   ? t.utc          // usable, however it was set
+                           : t.enabled ? 'syncing…'     // SNTP on, nothing yet
+                           : 'not enabled';
 
   const w = s.wifi || {};
   if (w.connected) {

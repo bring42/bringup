@@ -5,6 +5,7 @@
 #include "../logging.h"
 #include "../storage.h"
 #include "updater.h"      // updaterInProgress
+#include "timesync.h"     // timeSyncBegin
 #include <WiFi.h>
 #include <atomic>
 
@@ -92,6 +93,7 @@ static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 static void onWifiConnected() {
     LOG_INFO(LogTag::WIFI, "Connected! IP: %s", WiFi.localIP().toString().c_str());
     setupOTA();
+    bringup::timeSyncBegin();   // no-op unless BRINGUP_TIME_SYNC
     appOnNetworkUp();
 }
 
