@@ -22,6 +22,8 @@ running on hardware.
 - **Self-updating firmware** — the device checks your GitHub releases, compares
   both its firmware *and* its filesystem version, and installs SHA-256 verified
   images into the inactive OTA slot. `git push --tags` is the entire deploy.
+  Verified end to end on hardware: 0.0.1 → 0.1.0, both images, one reboot,
+  41 seconds ([details](docs/OTA.md#verified-on-hardware)).
 - **Partition tables** for 4/8/16 MB flash, sized for a web-UI project rather
   than the stock Arduino defaults.
 - **WiFi diagnostics** that tell you *why* a connection failed — translated IDF
@@ -122,8 +124,9 @@ pio device monitor               # serial log
   LAN; read [OTA.md](docs/OTA.md) before anything more exposed.
 - **The API token is plain HTTP.** It stops casual access on your LAN, nothing
   more.
-- Only the **XIAO ESP32-S3** has been run on hardware. The other three envs
-  compile and are inherited from a working project, but are otherwise untested
-  here. Adding a board is a `boards.json` entry, an env, and a build.
+- Only the **XIAO ESP32-S3** has been run on hardware — including a full OTA
+  update. The other three envs build in CI and are inherited from a working
+  project, but are otherwise untested. Adding a board is a `boards.json` entry,
+  an env, and a build.
 - **The board runs warm** (~58 °C die at idle). That is normal for an S3 with
   WiFi up; see [POWER.md](docs/POWER.md) for measurements and levers.

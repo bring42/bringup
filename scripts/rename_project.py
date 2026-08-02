@@ -142,7 +142,11 @@ def main():
             "\nNext:\n"
             "  1. Update the three PLACEHOLDER_* constants at the top of this\n"
             "     script, so a future rename of YOUR project works too.\n"
-            "  2. pio test -e native && pio run\n"
+            "  2. python3 scripts/gzip_web_files.py   # re-stamp data/*.html:\n"
+            "     renaming changed the asset CONTENT, but the ?v= cache-busting\n"
+            "     hashes are only recomputed at image-build time, so the\n"
+            "     committed HTML points at stale hashes until you do this.\n"
+            "  3. pio test -e native && pio run\n"
         )
 
 

@@ -28,6 +28,44 @@ The tag push is the entire deploy. There is no separate publish step — which
 also means a broken tag reaches every device that checks, so let the Build
 workflow go green on `main` first.
 
+## Verified on hardware
+
+Not a design sketch — this ran on a Seeed XIAO ESP32-S3 (8 MB), updating itself
+from a real GitHub release:
+
+```
+Updater: app=0.0.1 fs=0.0.1 latest=0.1.0 -> UPDATE AVAILABLE (app=yes fs=yes)
+   fs    0% → 97%   (1,966,080 B)
+   app   0% → 98%   (1,059,664 B)
+Updater: app image verified + flashed
+Updater: update complete, rebooting
+=== Bringup v0.1.0 ===
+```
+
+**41 seconds** from trigger to reboot. Afterwards the device reported
+`firmware 0.1.0 / filesystem 0.1.0 / up_to_date`.
+
+That second number is the one that matters. `filesystem: 0.1.0` is what proves
+the LittleFS image was actually written rather than silently skipped — the
+"new firmware, stale UI" failure this whole two-version design exists to
+prevent. A single version field cannot tell you that.
+
+What the run exercised, all of which had only been reasoned about before:
+
+- the `/releases/latest/download/` redirect, which crosses **three** hosts
+  (`github.com` → `objects.githubusercontent.com` →
+  `release-assets.githubusercontent.com`) — hence the forced redirect-following
+- board-id matching between the compiled-in `BRINGUP_BOARD_ID` and the manifest
+- the semver compare against a real published manifest
+- streaming SHA-256 verification of both images before either boot switch
+- the atomic fs-then-app ordering with exactly **one** reboot
+- `esp_ota_mark_app_valid_cancel_rollback()` on the way back up
+
+Resource cost during the transfer: free heap fell from ~250 KB to 189 KB
+(minimum 181 KB) for the TLS session and buffers, and die temperature rose
+50 °C → 54 °C, settling afterwards. Comfortable margins on an S3; worth
+re-checking on a C3, which has less RAM to spare.
+
 ## The two versions
 
 The single most useful detail in this design: **firmware and filesystem are
