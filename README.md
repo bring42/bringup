@@ -35,11 +35,15 @@ running on hardware.
 ## Quick start
 
 ```bash
-cp -r esp32_project_lib my-project && cd my-project
+git clone https://github.com/bring42/bringup my-project && cd my-project
+rm -rf .git
 python3 scripts/rename_project.py "My Project" --gh-owner you --gh-repo my-project
-rm scripts/rename_project.py
+python3 scripts/gzip_web_files.py          # re-stamp the asset cache-busters
 git init && git add -A && git commit -m "Initial commit from Bringup"
 ```
+
+Do the rename **first**: board ids are compiled into the firmware, so renaming
+after devices are deployed cuts them off from their update path.
 
 Flash it:
 

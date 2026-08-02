@@ -1,19 +1,24 @@
 /**
- * updater.cpp - Pull-based OTA from GitHub Releases.
+ * updater.cpp - Pull-based OTA: fetch a manifest, verify, flash, reboot.
  *
- * Flow: the device fetches manifest.json from the LATEST GitHub release
- * (via the stable .../releases/latest/download/manifest.json redirect URL),
- * reads the entry for THIS board (BRINGUP_BOARD_ID), compares the published semver
- * to the running FIRMWARE_VERSION, and — on request — downloads and flashes the
- * app image (and, if present, the LittleFS image) over HTTPS.
+ * Flow: the device fetches manifest.json, reads the entry for THIS board
+ * (BRINGUP_BOARD_ID), compares the published semver to the running
+ * FIRMWARE_VERSION, and — on request — downloads and flashes the app image
+ * (and, if present, the LittleFS image) over HTTPS.
  *
- * The repo is set by BRINGUP_GH_OWNER / BRINGUP_GH_REPO in constants.h. No API
- * token is involved: this reads public release assets over plain HTTPS, so it
- * works on a private-to-you-but-public repo and needs no secrets on the device.
+ * NOTHING HERE IS GITHUB-SPECIFIC. The source is two strings in constants.h
+ * (BRINGUP_MANIFEST_URL / BRINGUP_ASSET_BASE_URL) which default to a GitHub
+ * release for zero-config use. Override them to self-host — the requirement is
+ * only: HTTPS, a JSON manifest in the documented shape, and the named .bin
+ * files reachable WITHOUT credentials (the device sends none). Redirects are
+ * followed, so CDNs and object storage work. Self-hosting is the supported way
+ * to keep a project's source private while its images stay fetchable, and it
+ * lets you pin your own CA rather than trusting a third party's rotation
+ * schedule. See docs/OTA.md.
  *
  * ── Security posture (v1) ────────────────────────────────────────────────────
- *   • Transport:  HTTPS. GitHub redirects release-asset downloads to
- *                 objects.githubusercontent.com, so we FOLLOW redirects. TLS
+ *   • Transport:  HTTPS. GitHub redirects release-asset downloads across
+ *                 several hosts, so we FOLLOW redirects. TLS
  *                 uses setInsecure() (no cert pinning) — pragmatic for a hobby
  *                 device that cannot be updated to carry a rotated root.
  *   • Integrity:  each image is streamed through a SHA-256 hasher and compared
@@ -314,9 +319,9 @@ bool doCheck(String& err) {
     g_status.fsAvailable = false;
     unlock();
 
-    const String manifestUrl =
-        String("https://github.com/") + BRINGUP_GH_OWNER + "/" + BRINGUP_GH_REPO +
-        "/releases/latest/download/manifest.json";
+    // Defaults to the GitHub release URL; override BRINGUP_MANIFEST_URL to
+    // point anywhere else (see constants.h / docs/OTA.md).
+    const String manifestUrl = BRINGUP_MANIFEST_URL;
 
     String body;
     if (!httpsGetString(manifestUrl, body, err)) return false;
@@ -346,9 +351,8 @@ bool doCheck(String& err) {
         return false;
     }
 
-    const String assetBase =
-        String("https://github.com/") + BRINGUP_GH_OWNER + "/" + BRINGUP_GH_REPO +
-        "/releases/latest/download/";
+    // Manifest file names are appended verbatim, so this must end with '/'.
+    const String assetBase = BRINGUP_ASSET_BASE_URL;
 
     g_target.latest  = latest;
     g_target.appUrl  = assetBase + (const char*)(board["app"]["file"] | "");

@@ -101,6 +101,83 @@ The repo must be public, or at least its release assets must be — the device
 sends no credentials. It reads public release assets over plain HTTPS, which is
 also why no token ever needs to live on the device.
 
+## Self-hosting (and keeping your source private)
+
+The updater is not tied to GitHub. Two strings in `src/constants.h` decide where
+it looks, and they default to a GitHub release only because that needs no setup:
+
+```c
+BRINGUP_MANIFEST_URL     // where manifest.json lives
+BRINGUP_ASSET_BASE_URL   // prefix for the .bin names inside it (must end in '/')
+```
+
+Override them and nothing else changes:
+
+```ini
+build_flags =
+    -DBRINGUP_MANIFEST_URL='"https://fw.example.com/manifest.json"'
+    -DBRINGUP_ASSET_BASE_URL='"https://fw.example.com/"'
+```
+
+**Why you might want to.** GitHub releases inherit repo visibility, so OTA from
+GitHub means a public repo. Self-hosting separates the two: the source stays
+private and only the images are served. It also lets you pin **your own CA**
+instead of betting on a third party's certificate rotation — see the TLS notes
+below, where that turns out to be the strongest option available.
+
+Be clear about what it does *not* buy you. Anything the device can fetch without
+per-device credentials, anyone can fetch. Self-hosting makes your **source**
+private, not your **binaries**. Genuinely confidential firmware needs encrypted
+images or per-device keys, which is a different project.
+
+### What a host must do
+
+- Serve `manifest.json` and the `.bin` files it names, over **HTTPS**
+- Be reachable **without credentials** — the device sends none
+- That's it. Redirects are followed, so CDNs and object storage are fine, and
+  `setInsecure()` means even a self-signed certificate works today
+
+Cloudflare R2, S3, a static bucket, nginx on a VPS, or a Pi on your LAN all
+qualify. CI uploads the same files `gen_manifest.py` already produces; you
+overwrite `manifest.json` at a fixed URL instead of relying on GitHub's
+`latest` redirect.
+
+### Manifest format
+
+`scripts/gen_manifest.py` writes this, but if you self-host you own it, so here
+is the contract the firmware actually parses:
+
+```json
+{
+  "version": "1.2.0",
+  "buildHash": "a1b2c3d",
+  "notes": "Shown in the update panel.",
+  "boards": {
+    "seeed-xiao-esp32s3": {
+      "app": { "file": "bringup-seeed-xiao-esp32s3.bin",
+               "sha256": "<64 lowercase hex>", "size": 1059664 },
+      "fs":  { "file": "littlefs-seeed-xiao-esp32s3.bin",
+               "sha256": "<64 lowercase hex>", "size": 1966080 }
+    }
+  }
+}
+```
+
+Rules the device enforces:
+
+- `version` is required, and compared as `x.y.z` (suffixes ignored)
+- the key under `boards` must equal the firmware's `BRINGUP_BOARD_ID` — a
+  mismatch is reported as *"manifest has no assets for board ..."*, not a
+  silent no-op
+- `app` is required; `sha256` must be 64 hex chars and `size` non-zero, or the
+  check fails before anything is downloaded
+- `fs` is optional — omit it and only the firmware updates
+- `file` is appended to `BRINGUP_ASSET_BASE_URL` verbatim
+- `size` must match the server's `Content-Length`; a mismatch aborts
+
+Only these fields are parsed (ArduinoJson filters the rest at parse time to keep
+memory down on a C3), so extra keys are safe to add for your own tooling.
+
 ## Security posture
 
 What is protected:
