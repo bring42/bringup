@@ -34,6 +34,48 @@ constexpr uint32_t WIFI_RETRY_INTERVAL_MS   = 30000;
 constexpr uint32_t WIFI_DIAG_SCAN_INTERVAL_MS = 95000;
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TIME SYNC (SNTP) — opt-in
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// OFF by default. The base needs no wall clock — everything internal is
+// millis()-based, which is monotonic and needs no network. Turning this on adds
+// an outbound dependency, so it should be a decision, not a default.
+//
+// You want it if: you need timestamps, scheduling or "last seen" — or if you
+// enable TLS certificate verification, which CANNOT work without a correct
+// clock (an ESP32 boots at 1970, so every certificate reads as "not yet valid").
+#ifndef BRINGUP_TIME_SYNC
+#define BRINGUP_TIME_SYNC 0
+#endif
+
+// NTP servers. Leave ALL THREE EMPTY to use only what your router advertises
+// via DHCP option 42 — the Arduino core ships CONFIG_LWIP_DHCP_GET_NTP_SRV=y,
+// so that path costs nothing, contacts no third party you didn't already trust,
+// and requires you to choose nothing. Many home routers advertise one; many
+// don't. Set an explicit server only if yours doesn't:
+//
+//     -DBRINGUP_NTP_SERVER1='"pool.ntp.org"'
+//
+// (Explicit servers and DHCP coexist — DHCP fills any slot you leave empty.)
+#ifndef BRINGUP_NTP_SERVER1
+#define BRINGUP_NTP_SERVER1 ""
+#endif
+#ifndef BRINGUP_NTP_SERVER2
+#define BRINGUP_NTP_SERVER2 ""
+#endif
+#ifndef BRINGUP_NTP_SERVER3
+#define BRINGUP_NTP_SERVER3 ""
+#endif
+
+// POSIX TZ string for localtime(). "UTC0" keeps everything in UTC, which is
+// what you want for logs and comparisons. Local example (Sweden):
+//     -DBRINGUP_TZ='"CET-1CEST,M3.5.0,M10.5.0/3"'
+// Note the API always reports UTC regardless; this only affects localtime().
+#ifndef BRINGUP_TZ
+#define BRINGUP_TZ "UTC0"
+#endif
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SYSTEM LIMITS & BUFFERS
 // ═══════════════════════════════════════════════════════════════════════════
 

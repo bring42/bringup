@@ -5,6 +5,7 @@
 #include "../logging.h"
 #include "../storage.h"
 #include "../network/updater.h"
+#include "../network/timesync.h"
 #include <LittleFS.h>
 #include <WiFi.h>
 
@@ -55,6 +56,17 @@ void buildStatus(JsonObject out) {
 
     out["ip"] = wifiConnected ? WiFi.localIP().toString()
                               : WiFi.softAPIP().toString();
+
+    // Wall clock. Reported even when disabled, so the UI can distinguish
+    // "no clock configured" from "configured but never synced" — the second is
+    // a fault worth seeing, the first is just a choice.
+    JsonObject t = out["time"].to<JsonObject>();
+    t["enabled"] = (bool)BRINGUP_TIME_SYNC;   // is SNTP compiled in
+    t["valid"]   = bringup::timeValid();      // is the clock usable, however set
+    char iso[32];
+    if (bringup::timeIso8601(iso, sizeof(iso))) {
+        t["utc"] = iso;
+    }
 
     // Your project's fields, on the same object.
     appBuildStatus(out);
