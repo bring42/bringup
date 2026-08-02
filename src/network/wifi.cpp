@@ -4,6 +4,7 @@
 #include "../constants.h"    // AP_SSID / AP_PASSWORD / WIFI_* intervals
 #include "../logging.h"
 #include "../storage.h"
+#include "updater.h"      // updaterInProgress
 #include <WiFi.h>
 #include <atomic>
 
@@ -196,6 +197,17 @@ static void handleWifiDiagnosticScan() {
 
 // Helper function for WiFi reconnection and status monitoring
 void handleWifiMaintenance() {
+    // Keep the radio still while an update is downloading, flashing or waiting
+    // to reboot. A reconnect or a diagnostic scan channel-hops the single radio:
+    // at best that is log noise during the deliberate pre-reboot pause (the
+    // "begin(): disconnect failed!" seen racing a radio already going down), at
+    // worst it disturbs an in-flight download. A failed transfer leaves the
+    // updater in Error — which is NOT "in progress" — so maintenance resumes and
+    // the link self-heals on its own.
+    if (bringup::updaterInProgress()) {
+        return;
+    }
+
     handleWifiDiagnosticScan();
     // User-initiated connect: WiFi credentials were just saved. Fire immediately,
     // even with a client parked on the SoftAP — this is the one scan provisioning
