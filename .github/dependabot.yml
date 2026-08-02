@@ -1,0 +1,26 @@
+version: 2
+
+# Keep the GitHub Actions pinned in .github/workflows/ current.
+#
+# Action versions rot silently: a major bump is announced as a deprecation
+# warning on an otherwise-green build, is easy to scroll past, and only becomes
+# a RED build months later — usually at the least convenient moment. Worse, the
+# old versions keep reappearing, because anyone (or any tool) writing a new
+# workflow from memory reaches for whatever major was current when they last
+# looked.
+#
+# Dependabot removes that from human memory entirely: it opens a PR when a new
+# major appears, CI proves the bump on that PR, and merging is a one-click job.
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Monthly, not weekly — action releases are infrequent enough that weekly
+      # is just noise, and noise is what gets these ignored in the first place.
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+    # Majors are exactly the ones that matter here (they carry the Node runtime
+    # bumps), so they are deliberately NOT ignored.
