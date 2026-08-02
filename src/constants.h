@@ -90,6 +90,38 @@ constexpr uint32_t WATCHDOG_TIMEOUT_SEC     = 30;
 #define BRINGUP_GH_REPO "bringup"
 #endif
 
+// ── Where updates come from ────────────────────────────────────────────────
+// By default the two URLs below are derived from the repo above, which is the
+// zero-config path: GitHub's /releases/latest/download/ redirect resolves
+// "latest" for you, and the assets are CDN-served.
+//
+// SELF-HOSTING: override either macro (in platformio.ini build_flags, or here)
+// and nothing else changes — the updater is plain HTTPS + a JSON manifest, with
+// nothing GitHub-specific beyond these two strings. That is the supported way to
+// keep a project's SOURCE private while its firmware images stay fetchable:
+//
+//   build_flags =
+//       -DBRINGUP_MANIFEST_URL='"https://fw.example.com/manifest.json"'
+//       -DBRINGUP_ASSET_BASE_URL='"https://fw.example.com/"'
+//
+// Requirements for any host: serve manifest.json and the .bin files it names,
+// over HTTPS, reachable WITHOUT credentials (the device sends none). Redirects
+// are followed, so CDNs and object storage work. See docs/OTA.md for the
+// manifest format and the self-hosting notes.
+//
+// ASSET_BASE_URL must end with '/': file names from the manifest are appended
+// to it verbatim.
+#ifndef BRINGUP_MANIFEST_URL
+#define BRINGUP_MANIFEST_URL \
+    "https://github.com/" BRINGUP_GH_OWNER "/" BRINGUP_GH_REPO \
+    "/releases/latest/download/manifest.json"
+#endif
+#ifndef BRINGUP_ASSET_BASE_URL
+#define BRINGUP_ASSET_BASE_URL \
+    "https://github.com/" BRINGUP_GH_OWNER "/" BRINGUP_GH_REPO \
+    "/releases/latest/download/"
+#endif
+
 // Which release asset set belongs to THIS build. Injected per-env by
 // scripts/version.py from boards.json. Must match the keys CI writes into
 // manifest.json ("boards": { <id>: ... }) — a mismatch means the device
