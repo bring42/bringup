@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "Single source of truth for the release board table.",
+    "",
+    "Read by scripts/version.py (env -> BRINGUP_BOARD_ID macro), by",
+    "scripts/gen_manifest.py (which ids go into manifest.json), and by",
+    ".github/workflows/release.yml (which envs to build and what to name the",
+    "assets). In LUME this table was duplicated across all three and had to be",
+    "kept in sync by hand — here, adding a board means editing this file only.",
+    "",
+    "  env   PlatformIO environment name, must match an [env:...] in platformio.ini",
+    "  id    release asset id; appears in manifest.json and in the .bin filenames",
+    "        as <project>-<id>.bin / littlefs-<id>.bin, and is baked into the",
+    "        firmware as BRINGUP_BOARD_ID so a running device knows which",
+    "        manifest entry is its own. Changing an id orphans deployed devices",
+    "        from their update path, so treat ids as permanent once shipped.",
+    "  label human-readable, used in generated release notes only"
+  ],
+  "boards": [
+    {
+      "env": "esp32-s3-devkitc-1",
+      "id": "esp32-s3-devkitc",
+      "label": "ESP32-S3 DevKitC-1 (8 MB flash)"
+    },
+    {
+      "env": "seeed_xiao_esp32s3",
+      "id": "seeed-xiao-esp32s3",
+      "label": "Seeed XIAO ESP32-S3 (8 MB flash)"
+    },
+    {
+      "env": "esp32-c3-devkitm-1",
+      "id": "esp32-c3-devkitm",
+      "label": "ESP32-C3 DevKitM-1 (4 MB flash)"
+    },
+    {
+      "env": "seeed_xiao_esp32c3",
+      "id": "seeed-xiao-esp32c3",
+      "label": "Seeed XIAO ESP32-C3 (4 MB flash)"
+    }
+  ]
+}

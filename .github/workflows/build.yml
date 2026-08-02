@@ -1,0 +1,52 @@
+name: Build
+
+# Runs on every push and PR. Its job is to make sure a tag push (which IS the
+# deploy — see release.yml) can never be the first time a board is compiled.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      # Fast and hardware-free, so it runs first: if the version comparison or
+      # the body guard is broken, don't waste six minutes compiling.
+      - name: Run host unit tests
+        run: pio test -e native
+
+      # Every board in boards.json, plus its filesystem image — the same two
+      # commands the release runs, so a board that can't build is caught here
+      # and not at tag time.
+      - name: Build all boards
+        run: |
+          set -euo pipefail
+          python3 scripts/boards.py pairs | while IFS=: read -r env id; do
+            echo "::group::Build $env ($id)"
+            pio run -e "$env"
+            pio run -e "$env" -t buildfs
+            echo "::endgroup::"
+          done
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ github.sha }}
+          path: |
+            .pio/build/*/firmware.bin
+            .pio/build/*/littlefs.bin
+          retention-days: 30

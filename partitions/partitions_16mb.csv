@@ -1,0 +1,23 @@
+# BRINGUP partition table — 16 MB flash (ESP32-S3 N16 and friends).
+#
+# Same shape as the 4/8 MB tables, scaled up again.
+#
+#   app0/app1  6 MB each
+#   spiffs     3.875 MB
+#
+# nvs / otadata keep their stock offsets so device config survives a repartition.
+# App partitions are 64 KB (0x10000) aligned.
+#
+# ⚠️  Changing this table is a USB-serial reflash event, not an OTA one.
+# See docs/PARTITIONS.md.
+#
+# Requires the env to declare 16 MB of flash:
+#   board_upload.flash_size = 16MB
+#
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x600000,
+app1,       app,  ota_1,    0x610000, 0x600000,
+spiffs,     data, spiffs,   0xC10000, 0x3E0000,
+coredump,   data, coredump, 0xFF0000, 0x10000,

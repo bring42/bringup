@@ -1,0 +1,28 @@
+# BRINGUP partition table — 8 MB flash (ESP32-S3 N8, e.g. esp32-s3-devkitc-1).
+#
+# Same shape as partitions_4mb.csv, scaled up. With 8 MB there is no need to
+# squeeze: 3 MB per OTA slot is more app than an Arduino-framework project will
+# plausibly use, and the remaining ~1.9 MB of filesystem holds a substantial UI
+# (images, fonts) without thought.
+#
+#   app0/app1  3 MB each
+#   spiffs     1.875 MB
+#
+# nvs / otadata keep their stock offsets so device config survives a repartition.
+# App partitions are 64 KB (0x10000) aligned.
+#
+# ⚠️  Changing this table is a USB-serial reflash event, not an OTA one — a
+# device on a different layout cannot safely OTA onto images built for this one.
+# See docs/PARTITIONS.md.
+#
+# Requires the env to actually declare 8 MB of flash:
+#   board_upload.flash_size = 8MB
+#   board_build.arduino.memory_type / board_build.flash_mode as your board needs
+#
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x300000,
+app1,       app,  ota_1,    0x310000, 0x300000,
+spiffs,     data, spiffs,   0x610000, 0x1E0000,
+coredump,   data, coredump, 0x7F0000, 0x10000,

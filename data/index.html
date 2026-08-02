@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Bringup</title>
+  <!-- Declare the icons explicitly. Without these, browsers request
+       /favicon.ico and Safari probes a whole family of apple-touch-icon-*.png
+       names on every page load — and because ESP32's LittleFS.exists() calls
+       open() internally, EVERY one of those 404s logs an [E] line to serial.
+       Naming them is what stops the guessing. iOS needs a real PNG here; SVG
+       is fine for browser tabs. -->
+  <link rel="icon" href="/assets/icon.svg?v=26527909" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png?v=17ddb0cc">
+  <!-- The ?v= stamp is rewritten from the file's content hash by
+       scripts/gzip_web_files.py on every buildfs/uploadfs. Don't hand-edit it;
+       do keep the /assets/ prefix, which is what the stamper matches. -->
+  <link rel="stylesheet" href="/assets/app.css?v=6d251a58">
+</head>
+<body>
+  <header>
+    <h1 id="device-name">Bringup</h1>
+    <span id="conn" class="pill pill-idle">connecting…</span>
+  </header>
+
+  <main>
+    <!-- Status -->
+    <section class="card">
+      <h2>Status</h2>
+      <dl class="grid">
+        <dt>Firmware</dt><dd id="st-version">—</dd>
+        <dt>Board</dt><dd id="st-board">—</dd>
+        <dt>Address</dt><dd id="st-ip">—</dd>
+        <dt>WiFi</dt><dd id="st-wifi">—</dd>
+        <dt>Uptime</dt><dd id="st-uptime">—</dd>
+        <dt>Free heap</dt><dd id="st-heap">—</dd>
+        <dt>Die temp</dt><dd id="st-temp">—</dd>
+      </dl>
+    </section>
+
+    <!-- WiFi provisioning -->
+    <section class="card">
+      <h2>WiFi</h2>
+      <p class="hint">
+        The setup access point stays on even after you connect, so you can always
+        get back in at <code>192.168.4.1</code>.
+      </p>
+      <label>Network (SSID)
+        <input id="wifi-ssid" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <label>Password
+        <input id="wifi-pass" type="password" autocomplete="off"
+               placeholder="leave blank to keep the saved one">
+      </label>
+      <label>Device name
+        <input id="dev-name" type="text" autocomplete="off" maxlength="31">
+      </label>
+      <button id="wifi-save" class="primary">Save &amp; connect</button>
+      <p id="wifi-msg" class="msg"></p>
+    </section>
+
+    <!-- Firmware update -->
+    <section class="card">
+      <h2>Firmware update</h2>
+      <p class="hint">
+        Checks this project's GitHub releases and installs the newest one over
+        the air. Each image is SHA-256 verified before it is booted.
+      </p>
+      <div class="row">
+        <button id="fw-check">Check for update</button>
+        <button id="fw-install" class="primary" hidden>Install</button>
+      </div>
+      <div id="fw-progress" class="bar" hidden><div id="fw-bar"></div></div>
+      <p id="fw-msg" class="msg"></p>
+    </section>
+
+    <!-- Example app section — delete along with the app.cpp example -->
+    <section class="card">
+      <h2>Blink <span class="tag">example</span></h2>
+      <label class="check">
+        <input id="blink-on" type="checkbox"> Blinking
+      </label>
+      <label>Period <output id="blink-out">1000</output> ms
+        <input id="blink-period" type="range" min="50" max="3000" step="50" value="1000">
+      </label>
+      <p id="blink-msg" class="msg"></p>
+    </section>
+  </main>
+
+  <footer>
+    <span id="st-hash">—</span>
+  </footer>
+
+  <script src="/assets/app.js?v=19997043"></script>
+</body>
+</html>

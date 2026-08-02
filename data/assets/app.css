@@ -1,0 +1,144 @@
+/* Bringup — minimal device UI.
+   Single stylesheet, no framework, no external fonts: everything here is served
+   from the device's own flash, so the page works with no internet at all (which
+   is exactly the situation when you're standing next to a device on its setup
+   AP). Keep it that way. */
+
+:root {
+  --bg: #12141a;
+  --card: #1b1e26;
+  --line: #2a2e39;
+  --text: #e6e8ee;
+  --muted: #939aab;
+  --accent: #5b9cff;
+  --ok: #46c07a;
+  --warn: #e0a33c;
+  --err: #e2564f;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f5f8;
+    --card: #ffffff;
+    --line: #e0e3ea;
+    --text: #1a1d24;
+    --muted: #666e80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 1rem 3rem;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.5rem 0 1rem;
+}
+
+h1 { font-size: 1.4rem; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 0.95rem; margin: 0 0 0.9rem; text-transform: uppercase;
+     letter-spacing: 0.06em; color: var(--muted); }
+
+main { max-width: 44rem; margin: 0 auto; display: grid; gap: 1rem; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem 1.2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.2rem;
+  margin: 0;
+}
+.grid dt { color: var(--muted); }
+.grid dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+label { display: block; margin-bottom: 0.85rem; color: var(--muted); font-size: 0.9rem; }
+label.check { display: flex; align-items: center; gap: 0.5rem; }
+
+input[type=text], input[type=password] {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+}
+input[type=range] { width: 100%; margin-top: 0.4rem; accent-color: var(--accent); }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+button {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #08111f; font-weight: 600; }
+
+.row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+.pill {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pill-ok   { color: var(--ok);   border-color: var(--ok); }
+.pill-warn { color: var(--warn); border-color: var(--warn); }
+.pill-err  { color: var(--err);  border-color: var(--err); }
+
+.tag {
+  font-size: 0.7rem; text-transform: none; letter-spacing: 0;
+  color: var(--warn); border: 1px solid var(--warn);
+  border-radius: 999px; padding: 0.05rem 0.45rem; vertical-align: middle;
+}
+
+.hint { color: var(--muted); font-size: 0.86rem; margin: -0.3rem 0 1rem; }
+.msg { min-height: 1.3em; margin: 0.7rem 0 0; font-size: 0.87rem; color: var(--muted); }
+.msg.ok  { color: var(--ok); }
+.msg.err { color: var(--err); }
+
+.bar {
+  height: 6px; margin-top: 0.9rem;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 999px; overflow: hidden;
+}
+.bar > div { height: 100%; width: 0; background: var(--accent); transition: width 0.25s ease; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em; padding: 0.1em 0.35em;
+  background: var(--bg); border-radius: 5px;
+}
+
+footer {
+  max-width: 44rem; margin: 1.5rem auto 0;
+  color: var(--muted); font-size: 0.78rem; text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

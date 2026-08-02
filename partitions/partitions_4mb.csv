@@ -1,0 +1,33 @@
+# BRINGUP partition table — 4 MB flash (ESP32-C3 devkits, XIAO C3, classic ESP32).
+#
+# Rebalanced away from the stock Arduino default.csv, which splits 4 MB into
+# 1.25 MB app slots + 1.375 MB of filesystem. A web-UI project is the opposite
+# shape: the UI is ~200-400 KB (HTML/CSS/JS plus their .gz copies) while the app
+# carries TLS + AsyncWebServer + your logic and runs out of room first. Here the
+# filesystem is 384 KB and the reclaimed megabyte is split across BOTH OTA app
+# slots — A/B must stay identical in size, so every 1 KB of app headroom costs
+# 2 KB of flash.
+#
+#   app0/app1  1.75 MB each   (stock: 1.25 MB)
+#   spiffs     384 KB         (stock: 1.375 MB)
+#
+# Layout rules honored:
+# - nvs / otadata keep their stock offsets, so device config (WiFi credentials,
+#   auth token) survives a repartition; only filesystem content needs re-upload.
+# - app partitions are 64 KB (0x10000) aligned, as the bootloader requires.
+# - coredump keeps its stock size at the very top of flash.
+#
+# ⚠️  CHANGING THIS TABLE IS A USB-SERIAL REFLASH EVENT, NOT AN OTA ONE.
+# A device running the old layout cannot safely OTA onto images built for a new
+# one: an app image larger than the old slot physically will not fit, and the
+# filesystem image size won't match its partition. Decide the table BEFORE you
+# ship anything, because fixing it later means physical access to every device.
+# See docs/PARTITIONS.md.
+#
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x1C0000,
+app1,       app,  ota_1,    0x1D0000, 0x1C0000,
+spiffs,     data, spiffs,   0x390000, 0x60000,
+coredump,   data, coredump, 0x3F0000, 0x10000,

@@ -1,0 +1,90 @@
+name: Release
+
+# Publishing a tag is the whole release process:
+#
+#     git tag v1.2.0 && git push --tags
+#
+# This builds every board in boards.json, computes a SHA-256 for each image, and
+# publishes them with a manifest.json. Deployed devices poll that manifest, so
+# the tag push IS the deploy — there is no separate step, and nothing to
+# remember. That also means a broken tag reaches every device that checks, so
+# let the Build workflow go green on main first.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags + full history so version.py can describe/rev-parse
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      # FW_VERSION (the tag minus its leading "v") is read by scripts/version.py
+      # and baked into every image as FIRMWARE_VERSION, and written into the
+      # filesystem image as /fsver. That is how a running device knows its own
+      # two versions and can compare them against this manifest.
+      - name: Derive version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Build firmware + LittleFS image for every board in boards.json, then
+      # assemble the manifest. Asset ids come from that one file, so this loop
+      # can never drift from what the firmware expects to find.
+      - name: Build images + manifest
+        env:
+          FW_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          python3 scripts/boards.py pairs | while IFS=: read -r env id; do
+            echo "::group::Build $env ($id)"
+            pio run -e "$env"                 # -> firmware.bin
+            pio run -e "$env" -t buildfs      # -> littlefs.bin (gzips web files first)
+            cp ".pio/build/$env/firmware.bin" "release/bringup-$id.bin"
+            cp ".pio/build/$env/littlefs.bin" "release/littlefs-$id.bin"
+            echo "::endgroup::"
+          done
+
+          python3 scripts/gen_manifest.py "${FW_VERSION}" release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/manifest.json
+            release/bringup-*.bin
+            release/littlefs-*.bin
+          generate_release_notes: true
+          body: |
+            ## Over-the-air update
+
+            Devices already running this project can update themselves: open the
+            device UI → **Firmware update** → **Check for update**. The device
+            pulls `manifest.json` from this release, verifies the SHA-256 of each
+            image, and flashes over HTTPS into its inactive OTA slot.
+
+            ## First install (USB)
+
+            Flash `bringup-<board>.bin` at offset `0x0` with
+            [ESP Web Tool](https://esp.huhn.me/), then upload
+            `littlefs-<board>.bin` to the filesystem partition — or from a
+            checkout, `pio run -e <env> -t flashall`.
+
+            ⚠️ These images are built for this project's partition tables (see
+            `partitions/`). A device flashed with a different layout must be
+            re-flashed over USB once; OTA works normally from then on.
