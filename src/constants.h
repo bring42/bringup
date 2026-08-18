@@ -76,6 +76,39 @@ constexpr uint32_t WIFI_DIAG_SCAN_INTERVAL_MS = 95000;
 #endif
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TLS VERIFICATION for the updater — opt-in
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 0 (default) = setInsecure(). The transport is encrypted, but ANY certificate
+//               is accepted, so a machine-in-the-middle can serve substitute
+//               firmware. SHA-256 still protects against corruption, not against
+//               a server that lies consistently.
+// 1           = verify against the trust anchors in src/tls_root_ca.h, which
+//               you generate with scripts/fetch_root_ca.py.
+//
+// Off by default deliberately. Verification introduces a way for updates to
+// FAIL that does not exist today — no clock, expired anchor, retired root — and
+// for a device on a home LAN, an update path that can silently stop working is
+// a worse risk than an unauthenticated one. Turn it on when the device is
+// exposed, or when you self-host and control the CA.
+//
+//     build_flags = -DBRINGUP_TLS_VERIFY=1 -DBRINGUP_TIME_SYNC=1
+//
+// ⚠️ REQUIRES A VALID CLOCK. Certificate validity is checked against the
+// current time, and an ESP32 boots at 1970 — so every certificate reads as
+// "not yet valid" and EVERY handshake fails until the clock is set. The
+// updater refuses to start a verified fetch before then, with a message that
+// says so, rather than letting you debug a TLS error that points nowhere near
+// the clock.
+#ifndef BRINGUP_TLS_VERIFY
+#define BRINGUP_TLS_VERIFY 0
+#endif
+
+#if BRINGUP_TLS_VERIFY && !BRINGUP_TIME_SYNC
+#warning "BRINGUP_TLS_VERIFY=1 without BRINGUP_TIME_SYNC: updates will fail unless something else sets the clock (RTC chip, GPS, app code)."
+#endif
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SYSTEM LIMITS & BUFFERS
 // ═══════════════════════════════════════════════════════════════════════════
 

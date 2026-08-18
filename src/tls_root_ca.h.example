@@ -1,0 +1,29 @@
+#pragma once
+//
+// EXAMPLE ONLY — do not use these bytes. Generate your own:
+//
+//     python3 scripts/fetch_root_ca.py github.com \
+//         objects.githubusercontent.com release-assets.githubusercontent.com \
+//         > src/tls_root_ca.h
+//
+// Needed only when BRINGUP_TLS_VERIFY=1. The real file is gitignored, because
+// which roots you trust is a per-deployment decision with a hard expiry date —
+// inheriting someone else's stale anchors is how a fleet silently loses its
+// update path.
+//
+// Pass EVERY host the updater can reach. GitHub redirects downloads across
+// hosts that do NOT share a root, so pinning only github.com fails at the
+// redirect — after the check appeared to succeed.
+//
+// Self-hosting? Put your own CA's PEM here instead. One anchor, an expiry you
+// chose, and no third party's rotation schedule to track.
+
+static const char BRINGUP_TLS_ROOT_CA_PEM[] =
+    "-----BEGIN CERTIFICATE-----\n"
+    "...base64...\n"
+    "-----END CERTIFICATE-----\n"
+    // Concatenate as many as you need — mbedtls parses them into one trust list.
+    "-----BEGIN CERTIFICATE-----\n"
+    "...base64...\n"
+    "-----END CERTIFICATE-----\n"
+    ;

@@ -66,6 +66,7 @@ something useful without reading past this table.
 |---|---|---|
 | **Update source** | GitHub releases | self-host anywhere — private source, your own CA ([OTA.md](docs/OTA.md#self-hosting-and-keeping-your-source-private)) |
 | **Time** | none — the base is `millis()`-only | DHCP-supplied (free, no provider to pick) · explicit NTP servers |
+| **TLS on updates** | encrypted, certificate not checked | verify against pinned roots ([OTA.md](docs/OTA.md#tls-certificate-verification-opt-in)) — needs a clock |
 | **API auth** | open — needed for first-boot provisioning | token via `Authorization` / `X-API-Key` / `?token=` |
 | **Partitions** | 8 MB table, 3 MB app slots | 4 / 16 MB tables ([PARTITIONS.md](docs/PARTITIONS.md)) |
 
@@ -146,8 +147,11 @@ pio device monitor               # serial log
 
 - **OTA is not code-signed.** The checksum ships in the same manifest as the
   image, so anyone who can publish to your repo can publish firmware to your
-  devices. TLS uses `setInsecure()` — no certificate pinning. Fine on a home
-  LAN; read [OTA.md](docs/OTA.md) before anything more exposed.
+  devices. Certificate verification is available but **off by default** — see
+  [OTA.md](docs/OTA.md#security-posture) before exposing a device beyond a LAN.
+- **TLS verification is not yet hardware-verified.** `BRINGUP_TLS_VERIFY=1`
+  compiles and its compile-time guards work, but the runtime paths have not been
+  observed on a device. Off by default, so it affects nothing unless you opt in.
 - **The API token is plain HTTP.** It stops casual access on your LAN, nothing
   more.
 - Only the **XIAO ESP32-S3** has been run on hardware — including a full OTA
