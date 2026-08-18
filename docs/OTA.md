@@ -178,26 +178,105 @@ Rules the device enforces:
 Only these fields are parsed (ArduinoJson filters the rest at parse time to keep
 memory down on a C3), so extra keys are safe to add for your own tooling.
 
+## TLS certificate verification (opt-in)
+
+> ⚠️ **Not yet verified on hardware.** The code compiles and the compile-time
+> guards work, but the runtime paths — verification succeeding, verification
+> *failing* on a bad anchor, and the clock gate firing — have not been observed
+> on a device. Treat this as untested until that line is removed. It is off by
+> default, so nothing here affects a build that doesn't opt in.
+
+By default TLS uses `setInsecure()`: the transport is encrypted, but **any**
+certificate is accepted, so a machine-in-the-middle can serve substitute
+firmware. SHA-256 protects against corruption, not against a server that lies
+consistently.
+
+To verify:
+
+```ini
+build_flags =
+    -DBRINGUP_TLS_VERIFY=1
+    -DBRINGUP_TIME_SYNC=1              ; required — see below
+    -DBRINGUP_NTP_SERVER1='"pool.ntp.org"'
+```
+
+then generate the trust anchors:
+
+```bash
+python3 scripts/fetch_root_ca.py github.com objects.githubusercontent.com \
+    release-assets.githubusercontent.com > src/tls_root_ca.h
+```
+
+`src/tls_root_ca.h` is **gitignored on purpose**: which roots you trust is a
+per-deployment decision with a hard expiry date, and inheriting someone else's
+stale anchors is how a fleet silently loses its update path.
+
+### It needs a clock
+
+Certificate validity is checked against the current time, and an ESP32 boots at
+1970 — so with no clock **every** certificate reads as "not yet valid" and every
+handshake fails, with an error that points nowhere near the real cause. The
+updater refuses to start a verified fetch before the clock is set and says so
+plainly. There is also a compile-time `#warning` if you enable verification
+without time sync.
+
+The gate is `timeValid()` — "is the clock usable", not "is SNTP running" — so an
+app that sets time from a GPS or an RTC chip satisfies it too.
+
+### Pass every host
+
+GitHub's release download **crosses hosts that do not share a root**:
+
+| Host | Root |
+|---|---|
+| `github.com` | Sectigo Public Server Authentication Root E46 (expires 2038) |
+| `objects.githubusercontent.com` | ISRG Root YR (expires 2032) |
+| `release-assets.githubusercontent.com` | ISRG Root YR (same, deduped) |
+
+Pin only `github.com` and the *check* succeeds while the *download* fails at the
+redirect — the worst kind of bug. mbedtls parses concatenated PEMs into one
+trust list, so several roots in one string is exactly how you say "trust any of
+these".
+
+Note both are **cross-signed** (`subject != issuer`): CAs present the variant
+signed by an older, more widely distributed root so old clients can still build
+a chain. They are roots, not intermediates. `fetch_root_ca.py` distinguishes the
+two and refuses to be quiet about a non-CA leaf, which would break within months.
+
+### What you are committing to
+
+Pinning is a promise that outlives your attention. **If a pinned root is retired
+or expires, every deployed device loses its update path permanently** — you
+cannot ship the fix, because shipping the fix is the thing that broke.
+
+This is the strongest argument for self-hosting: your own CA means one anchor, a
+20-year validity you chose, and no third party's rotation schedule to track.
+1.5 KB, and better than anything GitHub can offer you here.
+
 ## Security posture
 
 What is protected:
 
-- **Transport** — HTTPS throughout, following GitHub's redirect to
-  `objects.githubusercontent.com`.
+- **Transport** — HTTPS throughout, following redirects across hosts.
 - **Integrity** — streaming SHA-256, verified before the boot switch.
 - **Anti-brick** — writes go to the inactive OTA slot; the bootloader is only
   repointed at a complete, verified image.
+- **Authenticity of the server** — only if you opt into `BRINGUP_TLS_VERIFY`
+  (see above). Off by default.
 
 What is **not**, and should be understood before deploying anything that
 matters:
 
 1. **No code signing.** The checksum comes from the same manifest as the image,
    so anyone who can publish to your repo can publish firmware to your devices.
-   Real hardening is ESP32 Secure Boot v2 with signed images.
-2. **No certificate pinning.** TLS uses `setInsecure()`. A machine-in-the-middle
-   with a forged certificate could serve a substitute image with a matching
-   hash. Pinning is the fix, at the cost of a device that breaks when the root
-   rotates.
+   Note this is orthogonal to TLS: verification proves you are talking to the
+   right *server*, not that the server sent firmware *you* authored. Real
+   hardening is ESP32 Secure Boot v2 with signed images.
+2. **Certificate verification is off by default.** Deliberate: verification adds
+   a way for updates to FAIL that does not otherwise exist — no clock, expired
+   anchor, retired root — and for a device on a home LAN an update path that can
+   silently stop working is a worse risk than an unauthenticated one. Turn it on
+   when the device is exposed, or when you self-host and control the CA.
 3. **No automatic rollback.** A verified-but-broken build stays booted.
    `esp_ota_mark_app_valid_cancel_rollback()` is already called at startup, so
    enabling `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` is the only remaining step
